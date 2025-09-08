@@ -202,6 +202,9 @@ def create_workflow():
 
 workflow = create_workflow()
 
+# ------------------------
+# 💻 Streamlit UI
+# ------------------------
 def generate_use_cases(company_name, progress_area):
     state = {
         "messages": [], "company": company_name, "industry": "",
@@ -209,29 +212,35 @@ def generate_use_cases(company_name, progress_area):
         "industry_trends": [], "use_cases": [],
         "datasets": [], "final_report": ""
     }
-    for step in ["research", "trends", "usecases", "resources", "evaluate", "final"]:
-        state.update(workflow.get_node(step)(state))
-        with progress_area:
-            st.subheader(f"📌 Step: {step.capitalize()}")
-            st.write(state["messages"][-1])
-            if step == "research":
-                st.write("**Industry:**", state["industry"])
-                st.write("**Key Offerings:**", state["key_offerings"])
-                st.write("**Strategic Focus:**", state["strategic_focus"])
-            elif step == "trends":
-                st.write("**Industry Trends:**", state["industry_trends"])
-            elif step == "usecases":
-                st.json(state["use_cases"])
-            elif step == "resources":
-                st.json(state["datasets"])
-            elif step == "evaluate":
-                st.json(state["use_cases"])
-            elif step == "final":
-                st.markdown(state["final_report"])
-    return state
+
+    # Run entire workflow
+    result = workflow.invoke(state)
+
+    # Display progress manually
+    with progress_area:
+        st.subheader("📌 Research")
+        st.write(result["messages"][0])
+        st.write("**Industry:**", result["industry"])
+        st.write("**Key Offerings:**", result["key_offerings"])
+        st.write("**Strategic Focus:**", result["strategic_focus"])
+
+        st.subheader("📌 Trends")
+        st.write(result["messages"][1] if len(result["messages"])>1 else "✅ Trends identified")
+        st.write("**Industry Trends:**", result["industry_trends"])
+
+        st.subheader("📌 Use Cases")
+        st.json(result["use_cases"])
+
+        st.subheader("📌 Datasets")
+        st.json(result["datasets"])
+
+        st.subheader("📌 Final Report")
+        st.markdown(result["final_report"])
+
+    return result
 
 # ------------------------
-# 🎨 Streamlit UI
+# 🎨 Streamlit App
 # ------------------------
 st.set_page_config(page_title="AI Strategy Generator", layout="wide")
 st.title("🚀 AI Strategy Report Generator")
@@ -241,12 +250,11 @@ if st.button("Generate AI Strategy"):
     progress_area = st.container()
     result = generate_use_cases(company, progress_area)
 
-    # Save report
+    # Save report and enable download
     os.makedirs("reports", exist_ok=True)
     filename = f"reports/{company}_ai_strategy_report.md"
     with open(filename, "w", encoding="utf-8") as f:
         f.write(result["final_report"])
 
-    # Download button
     with open(filename, "r", encoding="utf-8") as f:
         st.download_button("⬇️ Download Report", f, file_name=f"{company}_ai_strategy_report.md")
