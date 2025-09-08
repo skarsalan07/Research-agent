@@ -1,0 +1,6 @@
+streamlit
+requests
+langchain
+langchain-google-genai
+langchain-community
+langgraph
